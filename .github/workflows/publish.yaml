@@ -24,18 +24,14 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - platform: "macos-14" # for Intel based macs.
+          - platform: "macos-13"
             target: "x86_64-apple-darwin"
-          - platform: "macos-14" # for Arm based macs (M1 and above).
+          - platform: "macos-14"
             target: "aarch64-apple-darwin"
           - platform: "ubuntu-22.04"
             target: "x86_64-unknown-linux-gnu"
-          - platform: "ubuntu-22.04-arm"
-            target: "aarch64-unknown-linux-gnu"
           - platform: "windows-2022"
             target: "x86_64-pc-windows-msvc"
-          - platform: "windows-11-arm"
-            target: "aarch64-pc-windows-msvc"
 
     runs-on: ${{ matrix.platform }}
     steps:
@@ -89,7 +85,8 @@ jobs:
           url="https://github.com/astral-sh/python-build-standalone/releases/download/${TAG}/cpython-${PYTHON_VERSION}+${TAG}-${TARGET}-install_only_stripped.tar.gz"
           DEST_DIR="src-tauri/pyembed"
 
-          mkdir "$DEST_DIR"
+          rm -rf "$DEST_DIR"
+          mkdir -p "$DEST_DIR"
           curl -L "$url" | tar -xz -C "$DEST_DIR"
 
           # ref: <https://github.com/pytauri/pytauri/issues/99#issuecomment-2704556726>
