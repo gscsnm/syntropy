@@ -68,10 +68,22 @@ jobs:
           set -euo pipefail
           mkdir -p release-artifacts
 
-          dmg_path="$(ls -1 src-tauri/target/bundle-release/bundle/dmg/*.dmg | head -n 1)"
+          dmg_path="$(find src-tauri/target -type f -path "*/bundle/dmg/*.dmg" | head -n 1)"
+          if [[ -z "${dmg_path}" ]]; then
+            find src-tauri/target -maxdepth 5 -type d -print
+            find src-tauri/target -maxdepth 8 -type f -name "*.dmg" -print
+            echo "DMG artifact not found."
+            exit 1
+          fi
+
           sig_path="${dmg_path}.sig"
           if [[ ! -f "${sig_path}" ]]; then
-            sig_path="$(ls -1 src-tauri/target/bundle-release/bundle/dmg/*.sig | head -n 1)"
+            sig_path="$(find src-tauri/target -type f -path "*/bundle/dmg/*.sig" | head -n 1)"
+          fi
+          if [[ -z "${sig_path}" || ! -f "${sig_path}" ]]; then
+            find src-tauri/target -maxdepth 8 -type f -name "*.sig" -print
+            echo "DMG signature (.sig) not found. Check signing secrets."
+            exit 1
           fi
 
           cp "${dmg_path}" "${sig_path}" release-artifacts/
@@ -92,10 +104,10 @@ jobs:
         run: |
           New-Item -ItemType Directory -Force -Path release-artifacts | Out-Null
 
-          $msi = Get-ChildItem "src-tauri/target/bundle-release/bundle/msi/*.msi" | Select-Object -First 1
+          $msi = Get-ChildItem -Path "src-tauri/target" -Recurse -Filter "*.msi" | Where-Object { $_.FullName -match "\\bundle\\msi\\\\" } | Select-Object -First 1
           if ($null -eq $msi) { throw "MSI artifact not found." }
 
-          $sig = Get-ChildItem "src-tauri/target/bundle-release/bundle/msi/*.sig" | Select-Object -First 1
+          $sig = Get-ChildItem -Path "src-tauri/target" -Recurse -Filter "*.sig" | Where-Object { $_.FullName -match "\\bundle\\msi\\\\" } | Select-Object -First 1
           if ($null -eq $sig) { throw "MSI signature (.sig) not found. Check signing secrets." }
 
           Copy-Item $msi.FullName -Destination "release-artifacts/$($msi.Name)" -Force
