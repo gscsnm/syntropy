@@ -1,8 +1,7 @@
-import json
-from typing import Annotated, List, Optional, Any
+from typing import List, Optional, Any
 from pytauri import Commands, AppHandle
-from pytauri.ipc import Channel, JavaScriptChannelId
-from pydantic import BaseModel, RootModel
+from pytauri.ipc import JavaScriptChannelId
+from pydantic import BaseModel
 from pytauri.webview import WebviewWindow
 
 from .models.domain import AnalysisSpec
@@ -54,10 +53,6 @@ class GetTaskEventsBody(BaseModel):
 @commands.command()
 async def start_analysis(body: AnalysisSpec, app_handle: AppHandle) -> TaskIdResponse:
     """Start a new analysis task"""
-    # Ensure DB is initialized
-    init_db()
-    
-    # Initialize LiveContext with AppHandle if needed
     live_context.set_app_handle(app_handle)
     
     from .database import get_app_language as db_get_lang
@@ -77,8 +72,7 @@ async def subscribe_task_events(
     live_context.register_channel(body.task_id, channel)
     
 @commands.command()
-async def get_analysis_tasks(body: GetTasksBody) -> TaskListResponse:
-    init_db()
+async def get_analysis_tasks(body: GetTasksBody, app_handle: AppHandle) -> TaskListResponse:
     from sqlmodel import select
 
     tasks: List[AnalysisTask] = []
@@ -93,8 +87,7 @@ async def get_analysis_tasks(body: GetTasksBody) -> TaskListResponse:
     return TaskListResponse(tasks=tasks)
 
 @commands.command()
-async def get_task_events(body: GetTaskEventsBody) -> TaskEventsResponse:
-    init_db()
+async def get_task_events(body: GetTaskEventsBody, app_handle: AppHandle) -> TaskEventsResponse:
     from sqlmodel import select
 
     events: List[dict[str, Any]] = []
@@ -109,8 +102,7 @@ async def get_task_events(body: GetTaskEventsBody) -> TaskEventsResponse:
     return TaskEventsResponse(events=events)
 
 @commands.command()
-async def get_llm_config() -> LLMSettings:
-    init_db()
+async def get_llm_config(app_handle: AppHandle) -> LLMSettings:
     from sqlmodel import select
     from .database import get_session
     
@@ -122,8 +114,7 @@ async def get_llm_config() -> LLMSettings:
     return LLMSettings(fast=fast, slow=slow)
 
 @commands.command()
-async def save_llm_config(body: LLMConfig) -> LLMConfig:
-    init_db()
+async def save_llm_config(body: LLMConfig, app_handle: AppHandle) -> LLMConfig:
     from sqlmodel import Session, select
     from .database import _engine
     
@@ -154,17 +145,15 @@ async def set_active_llm(body: SetActiveLLMBody) -> bool:
     return True
 
 @commands.command()
-async def get_app_language() -> AppLanguage:
+async def get_app_language(app_handle: AppHandle) -> AppLanguage:
     """Get current app language setting"""
-    init_db()
     from .database import get_app_language as db_get_lang
     lang = db_get_lang() or "en-US"
     return AppLanguage(language=lang)
 
 @commands.command()
-async def set_app_language(body: AppLanguage) -> AppLanguage:
+async def set_app_language(body: AppLanguage, app_handle: AppHandle) -> AppLanguage:
     """Set app language"""
-    init_db()
     from .database import set_app_language as db_set_lang
     db_set_lang(body.language)
     return body

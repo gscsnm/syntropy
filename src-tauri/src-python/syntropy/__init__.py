@@ -1,19 +1,12 @@
-import sys
-from os import getenv
-
 from pathlib import Path
-from typing import Annotated
 
 from anyio.from_thread import start_blocking_portal
 from pydantic.alias_generators import to_camel
-from pydantic import BaseModel
 from pytauri import (
-    AppHandle,
-    Commands,
     Manager,
-    State,
     builder_factory,
     context_factory,
+    IS_DEV
 )
 
 from pytauri_utils.async_tools import AsyncTools
@@ -25,7 +18,7 @@ from .startup import initialize_app_state
 
 logger = logging.getLogger(__name__)
 
-PYTAURI_GEN_TS = getenv("PYTAURI_GEN_TS") != "0"
+PYTAURI_GEN_TS = IS_DEV
 
 def main() -> int:
     with start_blocking_portal("asyncio") as portal, AsyncTools(portal) as async_tools:  # or `trio`
@@ -49,7 +42,7 @@ def main() -> int:
         )
         Manager.manage(app, async_tools)
 
-        initialize_app_state()
+        initialize_app_state(app.handle())
 
         exit_code = app.run_return()
         return exit_code

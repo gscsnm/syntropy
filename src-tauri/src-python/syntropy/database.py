@@ -1,8 +1,7 @@
-import os
 from pathlib import Path
 from typing import Optional
 from sqlmodel import SQLModel, create_engine, Session, select
-from pytauri import AppHandle
+from pytauri import AppHandle, IS_DEV
 from datetime import datetime
 
 from .models.db import LLMConfig, AnalysisTask, AppSetting
@@ -10,22 +9,29 @@ from .models.db import LLMConfig, AnalysisTask, AppSetting
 # 全局引擎实例
 _engine = None
 
-def get_db_path() -> Path:
+def get_db_path(app_handle: Optional[AppHandle] = None) -> Path:
     """
     获取数据库文件路径
     在开发环境使用项目根目录下的 app_data
     在生产环境使用 Tauri 的 App Data 目录
     """
-    # 简单的判断逻辑，实际可根据环境变量或 AppHandle 获取
-    # 这里为了开发方便，先硬编码到项目目录的 app_data
-    base_dir = Path(__file__).parent.parent.parent.parent / "app_data"
+    if IS_DEV:
+        base_dir = Path(__file__).parent.parent.parent.parent / "app_data"
+    else:
+        base_dir_raw = None
+        if app_handle is not None:
+            try:
+                base_dir_raw = app_handle.path_resolver().app_data_dir()
+            except Exception:
+                base_dir_raw = None
+        base_dir = Path(base_dir_raw) if base_dir_raw else Path.home() / ".syntropy"
     base_dir.mkdir(parents=True, exist_ok=True)
     return base_dir / "syntropy.db"
 
-def init_db():
+def init_db(app_handle: Optional[AppHandle] = None):
     """初始化数据库连接和表结构"""
     global _engine
-    db_path = get_db_path()
+    db_path = get_db_path(app_handle)
     sqlite_url = f"sqlite:///{db_path}"
     
     # check_same_thread=False 是为了让 SQLite 在多线程环境下 (Python async) 正常工作
@@ -45,15 +51,14 @@ def init_db():
     print(f"Database initialized at {db_path}")
 
 def get_session():
-    """获取数据库会话生成器"""
     if _engine is None:
-        init_db()
+        raise RuntimeError("数据库未初始化")
     with Session(_engine) as session:
         yield session
 
 def stop_incomplete_analysis_tasks() -> int:
     if _engine is None:
-        init_db()
+        raise RuntimeError("数据库未初始化")
     now = datetime.now()
     with Session(_engine) as session:
         statement = select(AnalysisTask).where(AnalysisTask.status.in_(("pending", "running")))
@@ -69,7 +74,7 @@ def stop_incomplete_analysis_tasks() -> int:
 
 def get_active_llm_config(typ: str = "fast") -> Optional[LLMConfig]:
     if _engine is None:
-        init_db()
+        raise RuntimeError("数据库未初始化")
         
     with Session(_engine) as session:
         statement = select(LLMConfig).where(LLMConfig.role == typ)
@@ -77,18 +82,16 @@ def get_active_llm_config(typ: str = "fast") -> Optional[LLMConfig]:
         return session.exec(statement).first()
 
 def get_app_language() -> Optional[str]:
-    """获取应用语言设置"""
     if _engine is None:
-        init_db()
+        raise RuntimeError("数据库未初始化")
     with Session(_engine) as session:
         statement = select(AppSetting).where(AppSetting.key == "language")
         setting = session.exec(statement).first()
         return setting.value if setting else None
 
 def set_app_language(lang: str) -> None:
-    """设置应用语言"""
     if _engine is None:
-        init_db()
+        raise RuntimeError("数据库未初始化")
     with Session(_engine) as session:
         setting = session.exec(select(AppSetting).where(AppSetting.key == "language")).first()
         if setting:

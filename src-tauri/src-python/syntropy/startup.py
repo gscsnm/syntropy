@@ -1,18 +1,19 @@
 import locale
 import logging
+from pytauri import AppHandle
 
 
 logger = logging.getLogger(__name__)
 
 
-def initialize_app_state() -> None:
+def initialize_app_state(app_handle: AppHandle) -> None:
     try:
         from .database import init_db
         from .database import stop_incomplete_analysis_tasks
         from .database import get_app_language as db_get_lang
         from .database import set_app_language as db_set_lang
 
-        init_db()
+        init_db(app_handle)
         stop_incomplete_analysis_tasks()
 
         current_lang = db_get_lang()

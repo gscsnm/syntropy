@@ -2,8 +2,8 @@
 
 ### Argument ###
 
-PYTHON_VERSION="3.13.7"  # update these by yourself
-TAG="20250828"  # update these by yourself
+PYTHON_VERSION="3.12.12"  # update these by yourself
+TAG="20260114"  # update these by yourself
 TARGET="aarch64-apple-darwin"
 
 ################
