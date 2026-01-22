@@ -68,20 +68,45 @@ jobs:
           set -euo pipefail
           mkdir -p release-artifacts
 
-          dmg_path="$(find src-tauri/target -type f -path "*/bundle/dmg/*.dmg" | head -n 1)"
+          search_roots=(target src-tauri/target)
+          dmg_path=""
+          for root in "${search_roots[@]}"; do
+            if [[ -d "${root}" ]]; then
+              dmg_path="$(find "${root}" -type f -path "*/bundle/dmg/*.dmg" | head -n 1)"
+            fi
+            if [[ -n "${dmg_path}" ]]; then
+              break
+            fi
+          done
           if [[ -z "${dmg_path}" ]]; then
-            find src-tauri/target -maxdepth 5 -type d -print
-            find src-tauri/target -maxdepth 8 -type f -name "*.dmg" -print
+            for root in "${search_roots[@]}"; do
+              if [[ -d "${root}" ]]; then
+                find "${root}" -maxdepth 5 -type d -print
+                find "${root}" -maxdepth 8 -type f -name "*.dmg" -print
+              fi
+            done
             echo "DMG artifact not found."
             exit 1
           fi
 
           sig_path="${dmg_path}.sig"
           if [[ ! -f "${sig_path}" ]]; then
-            sig_path="$(find src-tauri/target -type f -path "*/bundle/dmg/*.sig" | head -n 1)"
+            sig_path=""
+            for root in "${search_roots[@]}"; do
+              if [[ -d "${root}" ]]; then
+                sig_path="$(find "${root}" -type f -path "*/bundle/dmg/*.sig" | head -n 1)"
+              fi
+              if [[ -n "${sig_path}" ]]; then
+                break
+              fi
+            done
           fi
           if [[ -z "${sig_path}" || ! -f "${sig_path}" ]]; then
-            find src-tauri/target -maxdepth 8 -type f -name "*.sig" -print
+            for root in "${search_roots[@]}"; do
+              if [[ -d "${root}" ]]; then
+                find "${root}" -maxdepth 8 -type f -name "*.sig" -print
+              fi
+            done
             echo "DMG signature (.sig) not found. Check signing secrets."
             exit 1
           fi
@@ -104,10 +129,23 @@ jobs:
         run: |
           New-Item -ItemType Directory -Force -Path release-artifacts | Out-Null
 
-          $msi = Get-ChildItem -Path "src-tauri/target" -Recurse -Filter "*.msi" | Where-Object { $_.FullName -match "\\bundle\\msi\\\\" } | Select-Object -First 1
+          $roots = @("target", "src-tauri/target")
+          $msi = $null
+          foreach ($root in $roots) {
+            if (Test-Path $root) {
+              $msi = Get-ChildItem -Path $root -Recurse -Filter "*.msi" | Where-Object { $_.FullName -match "\\bundle\\msi\\\\" } | Select-Object -First 1
+            }
+            if ($null -ne $msi) { break }
+          }
           if ($null -eq $msi) { throw "MSI artifact not found." }
 
-          $sig = Get-ChildItem -Path "src-tauri/target" -Recurse -Filter "*.sig" | Where-Object { $_.FullName -match "\\bundle\\msi\\\\" } | Select-Object -First 1
+          $sig = $null
+          foreach ($root in $roots) {
+            if (Test-Path $root) {
+              $sig = Get-ChildItem -Path $root -Recurse -Filter "*.sig" | Where-Object { $_.FullName -match "\\bundle\\msi\\\\" } | Select-Object -First 1
+            }
+            if ($null -ne $sig) { break }
+          }
           if ($null -eq $sig) { throw "MSI signature (.sig) not found. Check signing secrets." }
 
           Copy-Item $msi.FullName -Destination "release-artifacts/$($msi.Name)" -Force
