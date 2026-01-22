@@ -39,7 +39,7 @@
 - GitHub Releases：[下载最新版本](../../releases/latest)
 
 > 普通用户可以直接下载安装包使用。
-> macOS 用户若遇到“应用已损坏，无法打开”，可执行：
+> macOS 用户若遇到“应用已损坏，无法打开”，可在终端执行：
 > 
 > ```bash
 > sudo xattr -dr com.apple.quarantine /Applications/Syntropy.app
@@ -112,25 +112,21 @@
 - 微信：xxg-2077 (请备注来意)
 - 邮箱: chung2077@163.com
 
-<details open>
-<summary>在抖音关注我</summary>
-
-抖音号: 49498926981
-
-![抖音二维码](docs/images/qr-douyin.jpg)
-
-</details>
-
-<details open>
-<summary>☕️ 赞助</summary>
-
-如果这个项目对你有帮助，欢迎赞助支持持续迭代：
-
-[请我喝杯咖啡 https://ifdian.net/a/chung-207](https://ifdian.net/a/chung-2077)
-
-![请我喝杯咖啡](docs/images/qr-z.jpg)
-
-</details>
+<table>
+  <tr>
+    <td>
+      <strong>在抖音关注我</strong><br/>
+      抖音号: 49498926981<br/>
+      <img src="docs/images/qr-douyin.jpg" alt="抖音二维码" />
+    </td>
+    <td>
+      <strong>☕️ 赞助</strong><br/>
+      如果这个项目对你有帮助，欢迎赞助支持持续迭代：<br/>
+      <a href="https://ifdian.net/a/chung-2077">请我喝杯咖啡 https://ifdian.net/a/chung-207</a><br/>
+      <img src="docs/images/qr-z.jpg" alt="请我喝杯咖啡" />
+    </td>
+  </tr>
+</table>
 
 ## 本地体验（开发者）
 
