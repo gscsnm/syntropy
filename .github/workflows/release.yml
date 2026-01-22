@@ -89,39 +89,59 @@ jobs:
             exit 1
           fi
 
-          sig_path="${dmg_path}.sig"
-          if [[ ! -f "${sig_path}" ]]; then
-            sig_path=""
+          updater_path=""
+          for root in "${search_roots[@]}"; do
+            if [[ -d "${root}" ]]; then
+              updater_path="$(find "${root}" -type f -path "*/bundle/macos/*.app.tar.gz" | head -n 1)"
+            fi
+            if [[ -n "${updater_path}" ]]; then
+              break
+            fi
+          done
+          if [[ -z "${updater_path}" ]]; then
             for root in "${search_roots[@]}"; do
               if [[ -d "${root}" ]]; then
-                sig_path="$(find "${root}" -type f -path "*/bundle/dmg/*.sig" | head -n 1)"
+                find "${root}" -maxdepth 8 -type f -path "*/bundle/macos/*.tar.gz" -print
               fi
-              if [[ -n "${sig_path}" ]]; then
+            done
+            echo "Updater artifact (.app.tar.gz) not found. Ensure 'app' target is enabled."
+            exit 1
+          fi
+
+          updater_sig="${updater_path}.sig"
+          if [[ ! -f "${updater_sig}" ]]; then
+            updater_sig=""
+            for root in "${search_roots[@]}"; do
+              if [[ -d "${root}" ]]; then
+                updater_sig="$(find "${root}" -type f -path "*/bundle/macos/*.sig" | head -n 1)"
+              fi
+              if [[ -n "${updater_sig}" ]]; then
                 break
               fi
             done
           fi
-          if [[ -z "${sig_path}" || ! -f "${sig_path}" ]]; then
+          if [[ -z "${updater_sig}" || ! -f "${updater_sig}" ]]; then
             for root in "${search_roots[@]}"; do
               if [[ -d "${root}" ]]; then
                 find "${root}" -maxdepth 8 -type f -name "*.sig" -print
               fi
             done
-            echo "DMG signature (.sig) not found. Check signing secrets."
+            echo "Updater signature (.sig) not found. Check TAURI signing secrets."
             exit 1
           fi
 
-          cp "${dmg_path}" "${sig_path}" release-artifacts/
+          cp "${dmg_path}" "${updater_path}" "${updater_sig}" release-artifacts/
 
           version="${GITHUB_REF_NAME#v}"
           dmg_name="$(basename "${dmg_path}")"
-          sig_name="$(basename "${sig_path}")"
-          url="https://updates.ofo.me/syntropy/releases/download/${GITHUB_REF_NAME}/${dmg_name}"
+          updater_name="$(basename "${updater_path}")"
+          updater_sig_name="$(basename "${updater_sig}")"
+          updater_url="https://updates.ofo.me/syntropy/releases/download/${GITHUB_REF_NAME}/${updater_name}"
 
           python3 scripts/python/gen_updater_latest_json.py \
             --version "${version}" \
             --out "release-artifacts/latest-darwin-aarch64.json" \
-            --add "darwin-aarch64" "release-artifacts/${dmg_name}" "release-artifacts/${sig_name}" "${url}"
+            --add "darwin-aarch64" "release-artifacts/${updater_name}" "release-artifacts/${updater_sig_name}" "${updater_url}"
 
       - name: Prepare release artifacts (Windows)
         if: runner.os == 'Windows' && startsWith(github.ref, 'refs/tags/')
