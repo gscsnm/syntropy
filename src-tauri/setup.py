@@ -14,6 +14,7 @@ EXCLUDE_FILE_PATTERNS = (
     "syntropy/**/__init__.py",
     "syntropy/**/__main__.py",
     "syntropy/**/py.typed",
+    "syntropy/tools/wrappers.py",
 )
 
 _logger = getLogger(__name__)

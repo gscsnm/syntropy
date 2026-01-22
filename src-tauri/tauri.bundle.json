@@ -1,10 +1,14 @@
 {
+  "productName": "Syntropy",
   "bundle": {
     "active": true,
     "createUpdaterArtifacts": true,
     "targets": ["app", "msi", "dmg"],
     "resources": {
       "pyembed/python": "./"
+    },
+    "macOS": {
+      "infoPlist": "./macos/Info.plist"
     },
     "windows": {
       "wix": {

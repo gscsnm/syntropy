@@ -39,6 +39,11 @@
 - GitHub Releases：[下载最新版本](../../releases/latest)
 
 > 普通用户可以直接下载安装包使用。
+> macOS 用户若遇到“应用已损坏，无法打开”，可执行：
+> 
+> ```bash
+> sudo xattr -dr com.apple.quarantine /Applications/Syntropy.app
+> ```
 
 如果觉得这个项目对您有帮助，请给我一个 Star ⭐️ 谢谢。
 

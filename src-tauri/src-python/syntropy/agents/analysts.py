@@ -10,9 +10,10 @@ from ..tools.wrappers import (
     create_get_balance_sheet,
     create_get_cashflow,
     create_get_income_statement,
-    create_get_insider_transactions,    
+    create_get_insider_transactions,
+    create_search_baidu_news,
+    create_crawl_url_content,
 )
-from ..tools.news import search_baidu_news,create_url_content_crawler
 
 def _expected_output(expected_output_language: Optional[str]) -> Optional[str]:
     if not expected_output_language:
@@ -86,12 +87,10 @@ def create_news_analyst(
         max_tool_calls_from_history=5,
         tools=[
             create_get_company_news(market.value),
-            search_baidu_news,
-            create_url_content_crawler(
+            create_search_baidu_news(),
+            create_crawl_url_content(
                 model=_resolve_model(model, mode="fast", thinking=False)
             ),
-            # create_get_global_news(market.value),
-            # Crawl4aiTools(use_pruning=True, timeout=10,max_length=2000)
         ],
         expected_output=_expected_output(expected_output_language),
         add_datetime_to_context=True,

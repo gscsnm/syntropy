@@ -13,7 +13,13 @@ from .market_data import (
     get_market_data_by_akshare,
     get_indicator_timeseries_by_akshare,
 )
-from .news import get_company_news_by_ddgs, get_company_news_by_akshare, get_global_news
+from .news import (
+    get_company_news_by_ddgs,
+    get_company_news_by_akshare,
+    get_global_news,
+    search_baidu_news as _search_baidu_news,
+    create_url_content_crawler as _create_url_content_crawler,
+)
 
 
 MarketType = str
@@ -330,3 +336,33 @@ def create_get_global_news(market: MarketType):
 
     get_global_news_wrapper.__name__ = "get_global_news"
     return get_global_news_wrapper
+
+
+def create_search_baidu_news():
+    def search_baidu_news_wrapper(keyword: str) -> str:
+        """
+        Search Baidu News by keyword and return formatted result blocks.
+
+        Args:
+            keyword: Search keyword used to build the Baidu News query.
+        """
+        return _search_baidu_news(keyword)
+
+    search_baidu_news_wrapper.__name__ = "search_baidu_news"
+    return search_baidu_news_wrapper
+
+
+def create_crawl_url_content(model=None):
+    crawler = _create_url_content_crawler(model=model)
+
+    def crawl_url_content_wrapper(urls: List[str]) -> str:
+        """
+        Fetch page markdown and extract the main title/body for each URL.
+
+        Args:
+            urls: List of URL strings; order and indexes are preserved.
+        """
+        return crawler(urls)
+
+    crawl_url_content_wrapper.__name__ = "crawl_url_content"
+    return crawl_url_content_wrapper

@@ -130,10 +130,11 @@ jobs:
             exit 1
           fi
 
-          cp "${dmg_path}" "${updater_path}" "${updater_sig}" release-artifacts/
-
           version="${GITHUB_REF_NAME#v}"
-          dmg_name="$(basename "${dmg_path}")"
+          dmg_target_name="Syntropy-${version}-macos-aarch64.dmg"
+          cp "${dmg_path}" "release-artifacts/${dmg_target_name}"
+          cp "${updater_path}" "${updater_sig}" release-artifacts/
+          dmg_name="${dmg_target_name}"
           updater_name="$(basename "${updater_path}")"
           updater_sig_name="$(basename "${updater_sig}")"
           updater_url="https://updates.ofo.me/syntropy/releases/download/${GITHUB_REF_NAME}/${updater_name}"
@@ -153,7 +154,7 @@ jobs:
           $msi = $null
           foreach ($root in $roots) {
             if (Test-Path $root) {
-              $msi = Get-ChildItem -Path $root -Recurse -Filter "*.msi" | Where-Object { $_.FullName -match "\\bundle\\msi\\\\" } | Select-Object -First 1
+              $msi = Get-ChildItem -Path $root -Recurse -Filter "*.msi" | Where-Object { $_.FullName -like "*\bundle\msi\*" } | Select-Object -First 1
             }
             if ($null -ne $msi) { break }
           }
@@ -162,7 +163,7 @@ jobs:
           $sig = $null
           foreach ($root in $roots) {
             if (Test-Path $root) {
-              $sig = Get-ChildItem -Path $root -Recurse -Filter "*.sig" | Where-Object { $_.FullName -match "\\bundle\\msi\\\\" } | Select-Object -First 1
+              $sig = Get-ChildItem -Path $root -Recurse -Filter "*.sig" | Where-Object { $_.FullName -like "*\bundle\msi\*" } | Select-Object -First 1
             }
             if ($null -ne $sig) { break }
           }
