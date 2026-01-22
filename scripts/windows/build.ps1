@@ -13,4 +13,9 @@ uv.exe pip install `
     --reinstall-package="$PROJECT_NAME" `
     .\src-tauri
 
+$playwrightPath = Join-Path (Resolve-Path -LiteralPath "src-tauri\pyembed\python").Path "ms-playwright"
+New-Item -ItemType Directory -Force -Path $playwrightPath | Out-Null
+$env:PLAYWRIGHT_BROWSERS_PATH = $playwrightPath
+& $env:PYO3_PYTHON -m playwright install chromium
+
 pnpm -- tauri build --config="src-tauri\tauri.bundle.json" -- --profile bundle-release

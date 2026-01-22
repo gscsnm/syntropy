@@ -1,6 +1,8 @@
 import locale
 import logging
-from pytauri import AppHandle
+import os
+from pathlib import Path
+from pytauri import AppHandle, IS_DEV
 
 
 logger = logging.getLogger(__name__)
@@ -8,6 +10,16 @@ logger = logging.getLogger(__name__)
 
 def initialize_app_state(app_handle: AppHandle) -> None:
     try:
+        if not IS_DEV and "PLAYWRIGHT_BROWSERS_PATH" not in os.environ:
+            resource_dir = None
+            try:
+                resource_dir = app_handle.path_resolver().resource_dir()
+            except Exception:
+                resource_dir = None
+            if resource_dir:
+                browsers_path = Path(resource_dir) / "python" / "ms-playwright"
+                os.environ["PLAYWRIGHT_BROWSERS_PATH"] = str(browsers_path)
+
         from .database import init_db
         from .database import stop_incomplete_analysis_tasks
         from .database import get_app_language as db_get_lang
