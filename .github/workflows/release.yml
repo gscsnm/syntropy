@@ -1,0 +1,116 @@
+name: Release
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-14
+            download_py: bash scripts/macos/download-py.sh
+            build_cmd: bash scripts/macos/build.sh
+          - os: windows-2022
+            download_py: pwsh scripts/windows/download-py.ps1
+            build_cmd: pwsh scripts/windows/build.ps1
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: |
+            src-tauri -> target
+
+      - name: Install Node dependencies
+        run: pnpm install
+
+      - name: Download portable Python
+        run: ${{ matrix.download_py }}
+
+      - name: Build bundles
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        run: ${{ matrix.build_cmd }}
+
+      - name: Prepare release artifacts (macOS)
+        if: runner.os == 'macOS' && startsWith(github.ref, 'refs/tags/')
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p release-artifacts
+
+          dmg_path="$(ls -1 src-tauri/target/bundle-release/bundle/dmg/*.dmg | head -n 1)"
+          sig_path="${dmg_path}.sig"
+          if [[ ! -f "${sig_path}" ]]; then
+            sig_path="$(ls -1 src-tauri/target/bundle-release/bundle/dmg/*.sig | head -n 1)"
+          fi
+
+          cp "${dmg_path}" "${sig_path}" release-artifacts/
+
+          version="${GITHUB_REF_NAME#v}"
+          dmg_name="$(basename "${dmg_path}")"
+          sig_name="$(basename "${sig_path}")"
+          url="https://updates.ofo.me/syntropy/releases/download/${GITHUB_REF_NAME}/${dmg_name}"
+
+          python3 scripts/python/gen_updater_latest_json.py \
+            --version "${version}" \
+            --out "release-artifacts/latest-darwin-aarch64.json" \
+            --add "darwin-aarch64" "release-artifacts/${dmg_name}" "release-artifacts/${sig_name}" "${url}"
+
+      - name: Prepare release artifacts (Windows)
+        if: runner.os == 'Windows' && startsWith(github.ref, 'refs/tags/')
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path release-artifacts | Out-Null
+
+          $msi = Get-ChildItem "src-tauri/target/bundle-release/bundle/msi/*.msi" | Select-Object -First 1
+          if ($null -eq $msi) { throw "MSI artifact not found." }
+
+          $sig = Get-ChildItem "src-tauri/target/bundle-release/bundle/msi/*.sig" | Select-Object -First 1
+          if ($null -eq $sig) { throw "MSI signature (.sig) not found. Check signing secrets." }
+
+          Copy-Item $msi.FullName -Destination "release-artifacts/$($msi.Name)" -Force
+          Copy-Item $sig.FullName -Destination "release-artifacts/$($sig.Name)" -Force
+
+          $version = ($env:GITHUB_REF_NAME -replace '^v', '')
+          $url = "https://updates.ofo.me/syntropy/releases/download/$env:GITHUB_REF_NAME/$($msi.Name)"
+
+          python scripts/python/gen_updater_latest_json.py `
+            --version "$version" `
+            --out "release-artifacts/latest-windows-x86_64.json" `
+            --add "windows-x86_64" "release-artifacts/$($msi.Name)" "release-artifacts/$($sig.Name)" "$url"
+
+      - name: Upload assets to GitHub Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: release-artifacts/*

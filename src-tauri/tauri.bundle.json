@@ -1,0 +1,20 @@
+{
+  "bundle": {
+    "active": true,
+    "createUpdaterArtifacts": true,
+    "targets": ["msi", "dmg"],
+    "resources": {
+      "pyembed/python": "./"
+    },
+    "windows": {
+      "wix": {
+        "language": {
+          "en-US": null,
+          "zh-CN": {
+            "localePath": "./windows/wix/locales/zh-CN.wxl"
+          }
+        }
+      }
+    }
+  }
+}
