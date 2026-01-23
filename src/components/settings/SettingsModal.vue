@@ -27,6 +27,7 @@ const providerBaseUrl = {
 } as const;
 
 type ProviderKey = keyof typeof providerBaseUrl;
+const openaiCompatibleProvider = "openai_compatible";
 
 function isProviderKey(v: unknown): v is ProviderKey {
   return typeof v === "string" && v in providerBaseUrl;
@@ -34,6 +35,12 @@ function isProviderKey(v: unknown): v is ProviderKey {
 
 function ensureProviderBaseUrl(config: LLMConfig) {
   const provider = config.provider;
+  if (provider === openaiCompatibleProvider) {
+    if (config.api_base == null) {
+      config.api_base = "";
+    }
+    return;
+  }
   if (!isProviderKey(provider)) {
     config.provider = "bailian";
     config.api_base = providerBaseUrl.bailian;
@@ -69,6 +76,7 @@ const providerOptions = computed<UiSelectOption[]>(() => [
   { label: t("阿里百炼"), value: "bailian" },
   { label: t("豆包（火山引擎）"), value: "volcengine" },
   { label: t("DeepSeek"), value: "deepseek" },
+  { label: t("兼容（OpenAI 格式）"), value: openaiCompatibleProvider },
 ]);
 
 const languageOptions = computed<UiSelectOption[]>(() => [
@@ -210,6 +218,10 @@ watch(() => slowConfig.value.provider, () => {
                 <label class="block text-sm font-medium text-slate-700 mb-1">{{ t("API Key") }}</label>
                 <input v-model="fastConfig.api_key" type="password" class="w-full p-2 text-sm border border-slate-300 rounded focus:ring-2 focus:ring-blue-500 focus:outline-none font-mono select-text" />
               </div>
+              <div v-if="fastConfig.provider === openaiCompatibleProvider" class="col-span-2">
+                <label class="block text-sm font-medium text-slate-700 mb-1">{{ t("Base URL（可选）") }}</label>
+                <input v-model="fastConfig.api_base" type="text" placeholder="https://api.openai.com/v1" class="w-full p-2 text-sm border border-slate-300 rounded focus:ring-2 focus:ring-blue-500 focus:outline-none font-mono select-text" />
+              </div>
             </div>
           </div>
 
@@ -236,6 +248,10 @@ watch(() => slowConfig.value.provider, () => {
               <div>
                 <label class="block text-sm font-medium text-slate-700 mb-1">{{ t("API Key") }}</label>
                 <input v-model="slowConfig.api_key" type="password" class="w-full p-2 text-sm border border-slate-300 rounded focus:ring-2 focus:ring-blue-500 focus:outline-none font-mono select-text" />
+              </div>
+              <div v-if="slowConfig.provider === openaiCompatibleProvider" class="col-span-2">
+                <label class="block text-sm font-medium text-slate-700 mb-1">{{ t("Base URL（可选）") }}</label>
+                <input v-model="slowConfig.api_base" type="text" placeholder="https://api.openai.com/v1" class="w-full p-2 text-sm border border-slate-300 rounded focus:ring-2 focus:ring-blue-500 focus:outline-none font-mono select-text" />
               </div>
             </div>
           </div>

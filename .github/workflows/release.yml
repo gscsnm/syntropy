@@ -18,6 +18,15 @@ jobs:
           - os: macos-14
             download_py: bash scripts/macos/download-py.sh
             build_cmd: bash scripts/macos/build.sh
+            macos_arch: aarch64
+            updater_target: darwin-aarch64
+            dmg_suffix: macos-aarch64
+          - os: macos-13
+            download_py: bash scripts/macos/download-py.sh
+            build_cmd: bash scripts/macos/build.sh
+            macos_arch: x86_64
+            updater_target: darwin-x86_64
+            dmg_suffix: macos-x86_64
           - os: windows-2022
             download_py: pwsh scripts/windows/download-py.ps1
             build_cmd: pwsh scripts/windows/build.ps1
@@ -26,6 +35,9 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
 
       - uses: actions/setup-node@v4
         with:
@@ -67,6 +79,9 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p release-artifacts
+          macos_arch="${{ matrix.macos_arch }}"
+          updater_target="${{ matrix.updater_target }}"
+          dmg_suffix="${{ matrix.dmg_suffix }}"
 
           search_roots=(target src-tauri/target)
           dmg_path=""
@@ -131,7 +146,14 @@ jobs:
           fi
 
           version="${GITHUB_REF_NAME#v}"
-          dmg_target_name="Syntropy-${version}-macos-aarch64.dmg"
+          current_tag="${GITHUB_REF_NAME}"
+          prev_tag="$(git describe --tags --abbrev=0 "${current_tag}^" 2>/dev/null || true)"
+          if [[ -n "${prev_tag}" ]]; then
+            notes="$(git log "${prev_tag}..${current_tag}" --pretty=format:"- %s")"
+          else
+            notes="$(git log -1 --pretty=%B)"
+          fi
+          dmg_target_name="Syntropy-${version}-${dmg_suffix}.dmg"
           cp "${dmg_path}" "release-artifacts/${dmg_target_name}"
           cp "${updater_path}" "${updater_sig}" release-artifacts/
           dmg_name="${dmg_target_name}"
@@ -141,8 +163,9 @@ jobs:
 
           python3 scripts/python/gen_updater_latest_json.py \
             --version "${version}" \
-            --out "release-artifacts/latest-darwin-aarch64.json" \
-            --add "darwin-aarch64" "release-artifacts/${updater_name}" "release-artifacts/${updater_sig_name}" "${updater_url}"
+            --notes "${notes}" \
+            --out "release-artifacts/latest-${updater_target}.json" \
+            --add "${updater_target}" "release-artifacts/${updater_name}" "release-artifacts/${updater_sig_name}" "${updater_url}"
 
       - name: Prepare release artifacts (Windows)
         if: runner.os == 'Windows' && startsWith(github.ref, 'refs/tags/')
@@ -174,9 +197,18 @@ jobs:
 
           $version = ($env:GITHUB_REF_NAME -replace '^v', '')
           $url = "https://updates.ofo.me/syntropy/releases/download/$env:GITHUB_REF_NAME/$($msi.Name)"
+          $currentTag = $env:GITHUB_REF_NAME
+          $prevTag = git describe --tags --abbrev=0 "$currentTag^" 2>$null
+          if ($prevTag) {
+            $notes = git log "$prevTag..$currentTag" --pretty=format:"- %s"
+          } else {
+            $notes = git log -1 --pretty=%B
+          }
+          if ($notes -is [array]) { $notes = $notes -join "`n" }
 
           python scripts/python/gen_updater_latest_json.py `
             --version "$version" `
+            --notes "$notes" `
             --out "release-artifacts/latest-windows-x86_64.json" `
             --add "windows-x86_64" "release-artifacts/$($msi.Name)" "release-artifacts/$($sig.Name)" "$url"
 
