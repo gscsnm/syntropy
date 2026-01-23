@@ -1,13 +1,14 @@
 {
   "name": "syntropy",
   "private": true,
-  "version": "0.1.5",
+  "version": "0.1.6",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vue-tsc --noEmit && vite build",
     "preview": "vite preview",
-    "tauri": "tauri"
+    "tauri": "tauri",
+    "ttauri": "node -e \"const { spawn, spawnSync } = require('child_process'); const fs = require('fs'); const path = require('path'); const env = { ...process.env }; const args = process.argv.slice(1); const cmdArg = args.find((a) => !a.startsWith('-')); if (process.platform === 'win32' && cmdArg === 'dev') { const root = process.cwd(); const candidate = path.join(root, '.venv'); if (!env.VIRTUAL_ENV && fs.existsSync(candidate)) env.VIRTUAL_ENV = candidate; if (!env.VIRTUAL_ENV) { console.error('Missing VIRTUAL_ENV and no .venv found. Create one with: python -m venv .venv'); process.exit(1); } const venvScripts = path.join(env.VIRTUAL_ENV, 'Scripts'); const existingPath = env.Path || env.PATH || ''; env.Path = venvScripts + path.delimiter + existingPath; env.PATH = env.Path; const venvPython = path.join(venvScripts, 'python.exe'); const probe = spawnSync(venvPython, ['-c', 'import json,sys,sysconfig; print(json.dumps({\\\"base_prefix\\\": sys.base_prefix, \\\"ldlibrary\\\": sysconfig.get_config_var(\\\"LDLIBRARY\\\")}))'], { encoding: 'utf8' }); if (probe.status === 0) { try { const info = JSON.parse(String(probe.stdout || '').trim()); if (info.base_prefix) { env.Path = info.base_prefix + path.delimiter + env.Path; env.PATH = env.Path; } } catch {} } } const cmd = process.platform === 'win32' ? 'cmd.exe' : 'tauri'; const cmdArgs = process.platform === 'win32' ? ['/d', '/s', '/c', 'tauri', ...args] : args; const child = spawn(cmd, cmdArgs, { stdio: 'inherit', env, windowsHide: true }); child.on('error', (err) => { console.error(String(err)); process.exit(1); }); child.on('exit', (code) => process.exit(code ?? 1));\""
   },
   "dependencies": {
     "@aptabase/tauri": "^0.4.1",
