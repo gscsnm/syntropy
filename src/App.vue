@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, onMounted, onBeforeUnmount } from "vue";
+import { computed, ref, onMounted, onBeforeUnmount, markRaw, shallowRef } from "vue";
 import { RouterView } from "vue-router";
 import { useRoute } from "vue-router";
 import { useI18n } from "vue-i18n";
@@ -30,7 +30,7 @@ const updateInfo = ref<{
   date?: string;
   body?: string;
 } | null>(null);
-const pendingUpdate = ref<any | null>(null);
+const pendingUpdate = shallowRef<any | null>(null);
 const updateError = ref<string | null>(null);
 const updateInstalling = ref(false);
 const updateInstalled = ref(false);
@@ -105,7 +105,7 @@ async function checkUpdateOnce() {
     const update = await check({ timeout: 8000 });
     if (!update) return;
 
-    pendingUpdate.value = update;
+    pendingUpdate.value = markRaw(update);
     updateInfo.value = {
       version: String(update.version),
       currentVersion: String(update.currentVersion),
@@ -158,7 +158,7 @@ async function downloadAndInstallForcedUpdate() {
         updateError.value = t("未找到可用更新");
         return;
       }
-      pendingUpdate.value = update;
+      pendingUpdate.value = markRaw(update);
       updateInfo.value = {
         version: String(update.version),
         currentVersion: String(update.currentVersion),

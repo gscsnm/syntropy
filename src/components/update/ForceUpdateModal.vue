@@ -39,7 +39,7 @@ const headerText = computed(() => {
         <div class="p-6 border-b border-slate-100 bg-slate-50/50">
           <div class="flex items-start justify-between gap-4">
             <div class="min-w-0">
-              <h3 class="text-lg font-bold text-slate-900">{{ t("强制更新") }}</h3>
+              <h3 class="text-lg font-bold text-slate-900">{{ t("应用更新") }}</h3>
               <p class="text-xs text-slate-600 mt-1">{{ headerText }}</p>
               <p v-if="info" class="text-[11px] text-slate-500 mt-2">
                 {{ t("新版本") }} {{ info.version }} · {{ t("当前版本") }} {{ info.currentVersion }}
