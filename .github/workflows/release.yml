@@ -163,10 +163,11 @@ jobs:
           fi
           dmg_target_name="Syntropy-${version}-${dmg_suffix}.dmg"
           cp "${dmg_path}" "release-artifacts/${dmg_target_name}"
-          cp "${updater_path}" "${updater_sig}" release-artifacts/
           dmg_name="${dmg_target_name}"
-          updater_name="$(basename "${updater_path}")"
-          updater_sig_name="$(basename "${updater_sig}")"
+          updater_name="Syntropy-${version}-${updater_target}.app.tar.gz"
+          updater_sig_name="${updater_name}.sig"
+          cp "${updater_path}" "release-artifacts/${updater_name}"
+          cp "${updater_sig}" "release-artifacts/${updater_sig_name}"
           updater_url="https://updates.ofo.me/syntropy/releases/download/${RELEASE_TAG}/${updater_name}"
 
           python3 scripts/python/gen_updater_latest_json.py \
