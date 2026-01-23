@@ -2,9 +2,9 @@
 
 ### Argument ###
 
-PYTHON_VERSION="3.12.12"  # update these by yourself
-TAG="20260114"  # update these by yourself
-TARGET="aarch64-apple-darwin"
+PYTHON_VERSION="3.12.12"
+TAG="20260114"
+TARGET="${TARGET:-}"
 
 ################
 
@@ -12,10 +12,19 @@ set -e
 
 cd "$(dirname "$0")/../.."
 
+if [[ -z "${TARGET}" ]]; then
+  arch="$(uname -m)"
+  if [[ "${arch}" == "arm64" || "${arch}" == "aarch64" ]]; then
+    TARGET="aarch64-apple-darwin"
+  else
+    TARGET="x86_64-apple-darwin"
+  fi
+fi
+
 url="https://github.com/astral-sh/python-build-standalone/releases/download/${TAG}/cpython-${PYTHON_VERSION}+${TAG}-${TARGET}-install_only_stripped.tar.gz"
 
 DEST_DIR="src-tauri/pyembed"
-mkdir "$DEST_DIR"
+mkdir -p "$DEST_DIR"
 curl -L "$url" | tar -xz -C "$DEST_DIR"
 
 # ref: <https://github.com/pytauri/pytauri/issues/99#issuecomment-2704556726>
