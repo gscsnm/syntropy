@@ -2,6 +2,11 @@ name: Release
 
 on:
   workflow_dispatch:
+    inputs:
+      release_tag:
+        description: "Tag to build and upload assets for (e.g. v0.1.6)"
+        required: true
+        type: string
   push:
     tags:
       - "v*"
@@ -11,6 +16,8 @@ permissions:
 
 jobs:
   build:
+    env:
+      RELEASE_TAG: ${{ github.event.inputs.release_tag || github.ref_name }}
     strategy:
       fail-fast: false
       matrix:
@@ -21,7 +28,7 @@ jobs:
             macos_arch: aarch64
             updater_target: darwin-aarch64
             dmg_suffix: macos-aarch64
-          - os: macos-13
+          - os: macos-15-intel
             download_py: bash scripts/macos/download-py.sh
             build_cmd: bash scripts/macos/build.sh
             macos_arch: x86_64
@@ -38,6 +45,7 @@ jobs:
         with:
           fetch-depth: 0
           fetch-tags: true
+          ref: ${{ env.RELEASE_TAG }}
 
       - uses: actions/setup-node@v4
         with:
@@ -74,7 +82,7 @@ jobs:
         run: ${{ matrix.build_cmd }}
 
       - name: Prepare release artifacts (macOS)
-        if: runner.os == 'macOS' && startsWith(github.ref, 'refs/tags/')
+        if: runner.os == 'macOS' && (startsWith(github.ref, 'refs/tags/') || (github.event_name == 'workflow_dispatch' && env.RELEASE_TAG != ''))
         shell: bash
         run: |
           set -euo pipefail
@@ -145,8 +153,8 @@ jobs:
             exit 1
           fi
 
-          version="${GITHUB_REF_NAME#v}"
-          current_tag="${GITHUB_REF_NAME}"
+          version="${RELEASE_TAG#v}"
+          current_tag="${RELEASE_TAG}"
           prev_tag="$(git describe --tags --abbrev=0 "${current_tag}^" 2>/dev/null || true)"
           if [[ -n "${prev_tag}" ]]; then
             notes="$(git log "${prev_tag}..${current_tag}" --pretty=format:"- %s")"
@@ -159,7 +167,7 @@ jobs:
           dmg_name="${dmg_target_name}"
           updater_name="$(basename "${updater_path}")"
           updater_sig_name="$(basename "${updater_sig}")"
-          updater_url="https://updates.ofo.me/syntropy/releases/download/${GITHUB_REF_NAME}/${updater_name}"
+          updater_url="https://updates.ofo.me/syntropy/releases/download/${RELEASE_TAG}/${updater_name}"
 
           python3 scripts/python/gen_updater_latest_json.py \
             --version "${version}" \
@@ -168,7 +176,7 @@ jobs:
             --add "${updater_target}" "release-artifacts/${updater_name}" "release-artifacts/${updater_sig_name}" "${updater_url}"
 
       - name: Prepare release artifacts (Windows)
-        if: runner.os == 'Windows' && startsWith(github.ref, 'refs/tags/')
+        if: runner.os == 'Windows' && (startsWith(github.ref, 'refs/tags/') || (github.event_name == 'workflow_dispatch' && env.RELEASE_TAG != ''))
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force -Path release-artifacts | Out-Null
@@ -195,9 +203,9 @@ jobs:
           Copy-Item $msi.FullName -Destination "release-artifacts/$($msi.Name)" -Force
           Copy-Item $sig.FullName -Destination "release-artifacts/$($sig.Name)" -Force
 
-          $version = ($env:GITHUB_REF_NAME -replace '^v', '')
-          $url = "https://updates.ofo.me/syntropy/releases/download/$env:GITHUB_REF_NAME/$($msi.Name)"
-          $currentTag = $env:GITHUB_REF_NAME
+          $version = ($env:RELEASE_TAG -replace '^v', '')
+          $url = "https://updates.ofo.me/syntropy/releases/download/$env:RELEASE_TAG/$($msi.Name)"
+          $currentTag = $env:RELEASE_TAG
           $prevTag = git describe --tags --abbrev=0 "$currentTag^" 2>$null
           if ($prevTag) {
             $notes = git log "$prevTag..$currentTag" --pretty=format:"- %s"
@@ -213,7 +221,8 @@ jobs:
             --add "windows-x86_64" "release-artifacts/$($msi.Name)" "release-artifacts/$($sig.Name)" "$url"
 
       - name: Upload assets to GitHub Release
-        if: startsWith(github.ref, 'refs/tags/')
+        if: startsWith(github.ref, 'refs/tags/') || (github.event_name == 'workflow_dispatch' && env.RELEASE_TAG != '')
         uses: softprops/action-gh-release@v2
         with:
           files: release-artifacts/*
+          tag_name: ${{ env.RELEASE_TAG }}
