@@ -9,6 +9,7 @@ import SettingsModal from "./components/settings/SettingsModal.vue";
 import ForceUpdateModal from "./components/update/ForceUpdateModal.vue";
 import LucideIcon from "./components/icons/LucideIcon.vue";
 import { check } from "@tauri-apps/plugin-updater";
+import { relaunch } from "@tauri-apps/plugin-process";
 
 const showSettings = ref(false);
 const showDisclaimer = ref(false);
@@ -187,6 +188,10 @@ async function downloadAndInstallForcedUpdate() {
       }
     });
     updateInstalled.value = true;
+    try {
+      await relaunch();
+    } catch {
+    }
   } catch (e) {
     updateError.value = String((e as any)?.message ?? e);
   } finally {
