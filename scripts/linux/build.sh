@@ -21,7 +21,7 @@ uv pip install \
     --reinstall-package="$PROJECT_NAME" \
     ./src-tauri
 
-PLAYWRIGHT_BROWSERS_PATH="$(pwd)/src-tauri/pyembed/python/ms-playwright"
+PLAYWRIGHT_BROWSERS_PATH="0"
 export PLAYWRIGHT_BROWSERS_PATH
 "$PYO3_PYTHON" -m playwright install chromium
 
