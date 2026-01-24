@@ -4021,7 +4021,7 @@ dependencies = [
 
 [[package]]
 name = "syntropy"
-version = "0.1.6"
+version = "0.1.8"
 dependencies = [
  "objc2-app-kit",
  "objc2-web-kit",
